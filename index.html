@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>India Ocean Hazard Monitoring System</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <!-- Fixed Leaflet CSS integrity hash -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <style>
+    html, body, #map { 
+      height: 100%; 
+      margin: 0; 
+      padding: 0; 
+    }
+    
+    body { 
+      display: flex; 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      /* Dark minimalistic background */
+      background: #0a0a0a;
+      color: #e5e5e5;
+    }
+    
+    #map { 
+      flex: 1 1 60%; 
+      min-height: 400px;
+    }
+    
+    #side { 
+      width: 40%; 
+      max-width: 800px; 
+      min-width: 320px; 
+      overflow: auto; 
+      padding: 24px; 
+      box-sizing: border-box; 
+      /* Dark sidebar with subtle border */
+      background: #111111;
+      border-left: 1px solid #2a2a2a;
+      box-shadow: -4px 0 20px rgba(0,0,0,0.5);
+    }
+    
+    h2 {
+      /* Light text for dark theme */
+      color: #ffffff;
+      margin-top: 0;
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: -0.025em;
+    }
+    
+    h3 {
+      /* Muted light text with subtle border */
+      color: #d1d5db;
+      font-size: 1rem;
+      margin: 32px 0 16px 0;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #2a2a2a;
+      font-weight: 500;
+    }
+    
+    .feed { 
+      /* Dark card with subtle border and hover effect */
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      padding: 16px; 
+      margin-bottom: 12px;
+      background: #1a1a1a;
+      transition: all 0.2s ease;
+    }
+    
+    .feed:hover {
+      /* Subtle hover effect for dark theme */
+      background: #1f1f1f;
+      border-color: #3a3a3a;
+    }
+    
+    .alert-title { 
+      font-weight: 600; 
+      /* Bright red for alerts in dark theme */
+      color: #ef4444;
+      font-size: 1rem;
+      margin-bottom: 8px;
+    }
+    
+    .small { 
+      font-size: 0.875rem; 
+      /* Muted text for dark theme */
+      color: #9ca3af; 
+      margin-bottom: 8px;
+    }
+    
+    .description {
+      /* Light gray text for readability */
+      color: #d1d5db;
+      line-height: 1.6;
+      margin-bottom: 8px;
+    }
+    
+    pre { 
+      /* Darker code block with green text */
+      background: #0d1117;
+      color: #22c55e;
+      padding: 16px; 
+      border-radius: 8px;
+      overflow: auto; 
+      max-height: 200px;
+      font-size: 0.875rem;
+      border: 1px solid #21262d;
+      font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+    }
+    
+    button { 
+      margin: 12px 0; 
+      padding: 12px 20px; 
+      border-radius: 8px; 
+      border: none; 
+      /* Subtle dark button with minimal design */
+      background: #2a2a2a;
+      color: #e5e5e5; 
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 0.875rem;
+      transition: all 0.2s ease;
+      border: 1px solid #3a3a3a;
+    }
+    
+    button:hover {
+      /* Subtle hover effect */
+      background: #3a3a3a;
+      border-color: #4a4a4a;
+      transform: translateY(-1px);
+    }
+    
+    button:active {
+      transform: translateY(0);
+    }
+    
+    .status {
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin-bottom: 20px;
+      /* Subtle border for status */
+      border: 1px solid #2a2a2a;
+    }
+    
+    .status.loading {
+      /* Dark theme loading status */
+      background: #1a1a0a;
+      color: #fbbf24;
+      border-color: #2a2a0a;
+    }
+    
+    .status.success {
+      /* Dark theme success status */
+      background: #0a1a0a;
+      color: #22c55e;
+      border-color: #0a2a0a;
+    }
+    
+    .status.error {
+      /* Dark theme error status */
+      background: #1a0a0a;
+      color: #ef4444;
+      border-color: #2a0a0a;
+    }
+    
+    /* Demo button styling for dark theme */
+    #demoBtn {
+      background: #1a0a0a;
+      color: #ef4444;
+      border-color: #2a0a0a;
+      margin-left: 8px;
+    }
+    
+    #demoBtn:hover {
+      background: #2a0a0a;
+      border-color: #3a0a0a;
+    }
+    
+    /* Added responsive design for mobile */
+    @media (max-width: 768px) {
+      body {
+        flex-direction: column;
+      }
+      
+      #map {
+        flex: none;
+        height: 300px;
+      }
+      
+      #side {
+        width: 100%;
+        max-width: none;
+        border-left: none;
+        border-top: 1px solid #2a2a2a;
+        padding: 20px;
+      }
+    }
+    
+    /* Custom scrollbar for dark theme */
+    #side::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    #side::-webkit-scrollbar-track {
+      background: #1a1a1a;
+    }
+    
+    #side::-webkit-scrollbar-thumb {
+      background: #3a3a3a;
+      border-radius: 4px;
+    }
+    
+    #side::-webkit-scrollbar-thumb:hover {
+      background: #4a4a4a;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="side">
+    <!-- Removed emoji for minimalistic design -->
+    <h2>India Ocean Hazard Monitor</h2>
+    <p class="small">
+      Real-time monitoring of ocean hazards from official Indian sources:<br>
+      • NDMA CAP Alerts • IMD Coastal Bulletins • INCOIS Tsunami Warnings
+    </p>
+
+    <!-- Removed emojis for cleaner minimalistic look -->
+    <button id="refreshBtn">Refresh All Feeds</button>
+    <button id="demoBtn">Demo Hazard Alert</button>
+    <div id="status" class="status loading">Initializing feeds...</div>
+
+    <!-- Removed emojis from section headers -->
+    <h3>CAP Alerts (NDMA)</h3>
+    <div id="capFeed">Loading CAP feed...</div>
+
+    <h3>IMD Coastal Bulletins</h3>
+    <div id="imdFeed">Loading IMD coastal bulletins...</div>
+
+    <h3>INCOIS Tsunami Warnings</h3>
+    <div id="incoisWrap">Loading INCOIS TEWS...</div>
+
+    <h3>System Debug</h3>
+    <div id="raw">—</div>
+  </div>
+
+  <!-- Fixed Leaflet JS integrity hash -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""></script>
+  <script>
+  // ========== CONFIG ==========
+  const SOURCES = {
+    NDMA_CAP: 'https://sachet.ndma.gov.in/CapFeed',
+    IMD_COASTAL_API: 'https://mausam.imd.gov.in/api/coastal_bulletin_api.php',
+    INCOIS_TEWS: 'https://tsunami.incois.gov.in/TEWS/searlywarnings.jsp'
+  };
+
+  const CORS_PROXIES = [
+    url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    url => `https://cors-anywhere.herokuapp.com/${url}`
+  ];
+
+  // ========== MAP SETUP ==========
+  const map = L.map('map', {
+    center: [15.0, 77.0], 
+    zoom: 5,
+    zoomControl: true
+  });
+
+  const baseLayers = {
+    'OpenStreetMap': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '© OpenStreetMap contributors'
+    }),
+    'Satellite': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 18,
+      attribution: '© Esri'
+    })
+  };
+
+  baseLayers['OpenStreetMap'].addTo(map);
+  L.control.layers(baseLayers).addTo(map);
+
+  const capLayer = L.layerGroup().addTo(map);
+  const imdLayer = L.layerGroup().addTo(map);
+  const demoLayer = L.layerGroup().addTo(map);
+
+  // ========== IMPROVED FETCH WITH MULTIPLE FALLBACKS ==========
+  async function fetchWithFallback(url) {
+    const updateStatus = (msg, type = 'loading') => {
+      const status = document.getElementById('status');
+      status.textContent = msg;
+      status.className = `status ${type}`;
+    };
+
+    // Try direct fetch first
+    try {
+      updateStatus(`Fetching ${url.split('/').pop()}...`);
+      const res = await fetch(url, { 
+        cache: 'no-cache',
+        mode: 'cors',
+        headers: {
+          'Accept': 'application/xml, application/json, text/html, */*'
+        }
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      const text = await res.text();
+      updateStatus('✅ Direct fetch successful', 'success');
+      return text;
+    } catch (directError) {
+      console.warn('Direct fetch failed:', directError.message);
+      
+      // Try CORS proxies
+      for (let i = 0; i < CORS_PROXIES.length; i++) {
+        try {
+          updateStatus(`Trying proxy ${i + 1}/${CORS_PROXIES.length}...`);
+          const proxiedUrl = CORS_PROXIES[i](url);
+          const res = await fetch(proxiedUrl);
+          if (!res.ok) throw new Error(`Proxy HTTP ${res.status}`);
+          const text = await res.text();
+          updateStatus('✅ Proxy fetch successful', 'success');
+          return text;
+        } catch (proxyError) {
+          console.warn(`Proxy ${i + 1} failed:`, proxyError.message);
+          if (i === CORS_PROXIES.length - 1) {
+            updateStatus('❌ All fetch attempts failed', 'error');
+            throw new Error(`All fetch attempts failed. Last error: ${proxyError.message}`);
+          }
+        }
+      }
+    }
+  }
+
+  // ========== ENHANCED CAP PARSER ==========
+  function parseCAP(xmlText) {
+    try {
+      const parser = new DOMParser();
+      const xmldoc = parser.parseFromString(xmlText, 'application/xml');
+      
+      // Check for parsing errors
+      const parserError = xmldoc.querySelector('parsererror');
+      if (parserError) {
+        throw new Error('XML parsing failed: ' + parserError.textContent);
+      }
+
+      const alerts = Array.from(xmldoc.getElementsByTagName('alert') || []);
+      console.log(`[v0] Found ${alerts.length} CAP alerts`);
+      
+      return alerts.map(alert => {
+        const info = alert.getElementsByTagName('info')[0];
+        const area = info ? info.getElementsByTagName('area')[0] : null;
+        const polygon = area ? area.getElementsByTagName('polygon')[0] : null;
+        
+        return {
+          identifier: getText(alert, 'identifier'),
+          sender: getText(alert, 'sender'),
+          sent: getText(alert, 'sent'),
+          status: getText(alert, 'status'),
+          msgType: getText(alert, 'msgType'),
+          scope: getText(alert, 'scope'),
+          event: info ? getText(info, 'event') : null,
+          urgency: info ? getText(info, 'urgency') : null,
+          severity: info ? getText(info, 'severity') : null,
+          certainty: info ? getText(info, 'certainty') : null,
+          headline: info ? getText(info, 'headline') : null,
+          description: info ? getText(info, 'description') : null,
+          areaDesc: area ? getText(area, 'areaDesc') : null,
+          polygon: polygon ? getText(polygon, null) : null
+        };
+      });
+    } catch (error) {
+      console.error('[v0] CAP parsing error:', error);
+      return [];
+    }
+
+    function getText(node, tag) {
+      if (!node) return null;
+      if (!tag) return node.textContent?.trim() || null;
+      const el = node.getElementsByTagName(tag)[0];
+      return el ? el.textContent?.trim() || null : null;
+    }
+  }
+
+  // ========== ENHANCED CAP RENDERER ==========
+  function renderCAP(alerts) {
+    capLayer.clearLayers();
+    const container = document.getElementById('capFeed');
+    container.innerHTML = '';
+    
+    if (!alerts || alerts.length === 0) {
+      container.innerHTML = '<div class="status success">✅ No active CAP alerts</div>';
+      return;
+    }
+
+    console.log(`[v0] Rendering ${alerts.length} CAP alerts`);
+    
+    alerts.forEach((alert, idx) => {
+      const div = document.createElement('div');
+      div.className = 'feed';
+      
+      const urgencyColor = getUrgencyColor(alert.urgency, alert.severity);
+      
+      div.innerHTML = `
+        <div class="alert-title" style="color: ${urgencyColor}">
+          ${escapeHtml(alert.event || alert.headline || alert.identifier || 'Alert')}
+        </div>
+        <div class="small">
+          📅 ${formatDate(alert.sent)} • 
+          📡 ${escapeHtml(alert.sender || 'Unknown')} • 
+          ⚡ ${escapeHtml(alert.urgency || alert.severity || 'Unknown')}
+        </div>
+        <div class="description">
+          ${escapeHtml(alert.description ? 
+            (alert.description.length > 300 ? 
+              alert.description.substring(0, 300) + '...' : 
+              alert.description) : 
+            'No description available')}
+        </div>
+        <div class="small">📍 Area: ${escapeHtml(alert.areaDesc || 'Not specified')}</div>
+      `;
+      container.appendChild(div);
+
+      if (alert.polygon) {
+        try {
+          const polys = alert.polygon.split(/\s*;\s*/).filter(Boolean);
+          polys.forEach(polyText => {
+            const coords = parsePolygonCoords(polyText);
+            if (coords.length >= 3) {
+              const poly = L.polygon(coords, {
+                color: urgencyColor,
+                weight: 2,
+                fillOpacity: 0.2,
+                fillColor: urgencyColor
+              }).addTo(capLayer);
+              
+              poly.bindPopup(`
+                <div style="max-width: 300px;">
+                  <h4>${escapeHtml(alert.event || alert.headline || 'Alert')}</h4>
+                  <p><strong>Urgency:</strong> ${escapeHtml(alert.urgency || 'Unknown')}</p>
+                  <p><strong>Severity:</strong> ${escapeHtml(alert.severity || 'Unknown')}</p>
+                  <p>${escapeHtml(alert.description?.substring(0, 200) || 'No description')}${alert.description?.length > 200 ? '...' : ''}</p>
+                </div>
+              `);
+            }
+          });
+        } catch (error) {
+          console.warn('[v0] Error rendering polygon for alert:', alert.identifier, error);
+        }
+      }
+    });
+
+    // Auto-fit map to show alerts
+    if (capLayer.getLayers().length > 0) {
+      try {
+        map.fitBounds(capLayer.getBounds(), { padding: [20, 20] });
+      } catch (error) {
+        console.warn('[v0] Error fitting bounds:', error);
+      }
+    }
+  }
+
+  // ========== ENHANCED IMD RENDERER ==========
+  function renderIMD(rawText) {
+    const container = document.getElementById('imdFeed');
+    try {
+      const data = JSON.parse(rawText);
+      console.log('[v0] IMD data type:', typeof data, 'length:', Array.isArray(data) ? data.length : 'N/A');
+      
+      if (!Array.isArray(data)) {
+        container.innerHTML = `<pre>${escapeHtml(JSON.stringify(data, null, 2))}</pre>`;
+        return;
+      }
+      
+      container.innerHTML = '';
+      const bulletins = data.slice(0, 10);
+      
+      if (bulletins.length === 0) {
+        container.innerHTML = '<div class="status success">✅ No coastal bulletins available</div>';
+        return;
+      }
+      
+      bulletins.forEach(bulletin => {
+        const div = document.createElement('div');
+        div.className = 'feed';
+        div.innerHTML = `
+          <div class="alert-title">
+            🌊 ${escapeHtml(bulletin.Layer || bulletin.layer || 'Coastal Bulletin')}
+          </div>
+          <div class="small">
+            📅 ${escapeHtml(bulletin['Date of Observation'] || bulletin['Updated Time'] || bulletin.UpdateTime || 'Unknown time')}
+          </div>
+          <div class="description">
+            ${escapeHtml(bulletin.SynopticSituation || bulletin['Synoptic Situation'] || bulletin.description || bulletin.Weather || 'No details available')}
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    } catch (error) {
+      console.error('[v0] IMD parsing error:', error);
+      container.innerHTML = `
+        <div class="status error">❌ Failed to parse IMD data</div>
+        <pre>${escapeHtml(rawText.substring(0, 1000))}${rawText.length > 1000 ? '...' : ''}</pre>
+      `;
+    }
+  }
+
+  // ========== ENHANCED INCOIS RENDERER ==========
+  function renderINCOIS(rawHtml) {
+    const wrap = document.getElementById('incoisWrap');
+    try {
+      let content = rawHtml;
+      
+      // Extract body content if available
+      const bodyMatch = rawHtml.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+      if (bodyMatch) {
+        content = bodyMatch[1];
+      }
+      
+      // Remove dangerous elements
+      content = content
+        .replace(/<script[\s\S]*?<\/script>/gi, '')
+        .replace(/<iframe[\s\S]*?<\/iframe>/gi, '')
+        .replace(/on\w+="[^"]*"/gi, '')
+        .replace(/javascript:/gi, '');
+      
+      // Look for warning content
+      const hasWarnings = content.toLowerCase().includes('warning') || 
+                         content.toLowerCase().includes('alert') ||
+                         content.toLowerCase().includes('tsunami');
+      
+      if (!hasWarnings && content.length > 500) {
+        wrap.innerHTML = '<div class="status success">✅ No active tsunami warnings</div>';
+      } else {
+        wrap.innerHTML = `
+          <div style="max-height: 300px; overflow: auto; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; background: white;">
+            ${content.substring(0, 2000)}${content.length > 2000 ? '...' : ''}
+          </div>
+        `;
+      }
+    } catch (error) {
+      console.error('[v0] INCOIS rendering error:', error);
+      wrap.innerHTML = `
+        <div class="status error">❌ Error processing INCOIS data</div>
+        <pre>${escapeHtml(rawHtml.substring(0, 1000))}...</pre>
+      `;
+    }
+  }
+
+  // ========== MAIN REFRESH FUNCTION ==========
+  async function refreshAll() {
+    const startTime = Date.now();
+    console.log('[v0] Starting feed refresh...');
+    
+    // Reset UI
+    document.getElementById('capFeed').innerHTML = '<div class="status loading">Loading CAP alerts...</div>';
+    document.getElementById('imdFeed').innerHTML = '<div class="status loading">Loading IMD bulletins...</div>';
+    document.getElementById('incoisWrap').innerHTML = '<div class="status loading">Loading INCOIS warnings...</div>';
+    document.getElementById('raw').textContent = 'Refreshing feeds...';
+
+    const results = { success: 0, failed: 0, errors: [] };
+
+    // NDMA CAP Feed
+    try {
+      console.log('[v0] Fetching NDMA CAP feed...');
+      const capText = await fetchWithFallback(SOURCES.NDMA_CAP);
+      const capAlerts = parseCAP(capText);
+      renderCAP(capAlerts);
+      results.success++;
+      console.log('[v0] NDMA CAP feed processed successfully');
+    } catch (error) {
+      console.error('[v0] NDMA CAP feed failed:', error);
+      document.getElementById('capFeed').innerHTML = `<div class="status error">❌ Failed to load CAP alerts: ${escapeHtml(error.message)}</div>`;
+      results.failed++;
+      results.errors.push(`CAP: ${error.message}`);
+    }
+
+    // IMD Coastal API
+    try {
+      console.log('[v0] Fetching IMD coastal bulletins...');
+      const imdText = await fetchWithFallback(SOURCES.IMD_COASTAL_API);
+      renderIMD(imdText);
+      results.success++;
+      console.log('[v0] IMD coastal bulletins processed successfully');
+    } catch (error) {
+      console.error('[v0] IMD coastal API failed:', error);
+      document.getElementById('imdFeed').innerHTML = `<div class="status error">❌ Failed to load IMD bulletins: ${escapeHtml(error.message)}</div>`;
+      results.failed++;
+      results.errors.push(`IMD: ${error.message}`);
+    }
+
+    // INCOIS TEWS
+    try {
+      console.log('[v0] Fetching INCOIS TEWS...');
+      const incoisText = await fetchWithFallback(SOURCES.INCOIS_TEWS);
+      renderINCOIS(incoisText);
+      results.success++;
+      console.log('[v0] INCOIS TEWS processed successfully');
+    } catch (error) {
+      console.error('[v0] INCOIS TEWS failed:', error);
+      document.getElementById('incoisWrap').innerHTML = `<div class="status error">❌ Failed to load INCOIS warnings: ${escapeHtml(error.message)}</div>`;
+      results.failed++;
+      results.errors.push(`INCOIS: ${error.message}`);
+    }
+
+    // Update status
+    const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+    const statusEl = document.getElementById('status');
+    
+    if (results.success === 3) {
+      statusEl.textContent = `✅ All feeds updated successfully (${duration}s)`;
+      statusEl.className = 'status success';
+    } else if (results.success > 0) {
+      statusEl.textContent = `⚠️ ${results.success}/3 feeds updated (${duration}s)`;
+      statusEl.className = 'status error';
+    } else {
+      statusEl.textContent = `❌ All feeds failed (${duration}s)`;
+      statusEl.className = 'status error';
+    }
+
+    document.getElementById('raw').textContent = 
+      `Refresh completed in ${duration}s | Success: ${results.success}/3 | ` +
+      (results.errors.length > 0 ? `Errors: ${results.errors.join('; ')}` : 'No errors');
+
+    console.log('[v0] Feed refresh completed:', results);
+  }
+
+  // ========== UTILITY FUNCTIONS ==========
+  function escapeHtml(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function createDemoHazard() {
+    // Clear existing demo hazards
+    demoLayer.clearLayers();
+    
+    // Demo hazard locations in Indian Ocean
+    const demoHazards = [
+      {
+        type: 'Cyclone',
+        location: [12.5, 85.0], // Bay of Bengal
+        polygon: [[12.0, 84.5], [13.0, 84.5], [13.0, 85.5], [12.0, 85.5], [12.0, 84.5]],
+        title: 'DEMO: Severe Cyclonic Storm "TESTCYCLONE"',
+        description: 'This is a DEMONSTRATION of hazard alert system. Severe cyclonic storm with winds up to 120 km/h moving northwest. Expected landfall in 18-24 hours.',
+        urgency: 'Immediate',
+        severity: 'Extreme'
+      },
+      {
+        type: 'Tsunami',
+        location: [8.0, 73.0], // Arabian Sea
+        polygon: [[7.5, 72.5], [8.5, 72.5], [8.5, 73.5], [7.5, 73.5], [7.5, 72.5]],
+        title: 'DEMO: Tsunami Warning',
+        description: 'This is a DEMONSTRATION alert. Tsunami waves of 1-3 meters possible along western coast. Immediate evacuation recommended for coastal areas.',
+        urgency: 'Immediate',
+        severity: 'Severe'
+      }
+    ];
+    
+    // Randomly select one hazard for demo
+    const hazard = demoHazards[Math.floor(Math.random() * demoHazards.length)];
+    
+    // Add polygon to map with demo styling
+    const polygon = L.polygon(hazard.polygon, {
+      color: '#dc2626',
+      weight: 3,
+      fillOpacity: 0.3,
+      fillColor: '#dc2626',
+      dashArray: '10, 5', // Dashed line to indicate demo
+      className: 'demo-hazard'
+    }).addTo(demoLayer);
+    
+    // Add center marker
+    const marker = L.marker(hazard.location, {
+      icon: L.divIcon({
+        html: `<div style="background: #dc2626; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; border: 2px dashed white;">${hazard.type === 'Cyclone' ? '🌀' : '🌊'} DEMO</div>`,
+        className: 'demo-marker',
+        iconSize: [80, 30],
+        iconAnchor: [40, 15]
+      })
+    }).addTo(demoLayer);
+    
+    // Add popup with demo warning
+    const popupContent = `
+      <div style="max-width: 300px; border: 3px dashed #dc2626; padding: 10px; background: #fef2f2;">
+        <h4 style="color: #dc2626; margin: 0 0 8px 0;">🚨 DEMONSTRATION ALERT</h4>
+        <h5 style="margin: 0 0 8px 0;">${escapeHtml(hazard.title)}</h5>
+        <p><strong>Type:</strong> ${escapeHtml(hazard.type)}</p>
+        <p><strong>Urgency:</strong> ${escapeHtml(hazard.urgency)}</p>
+        <p><strong>Severity:</strong> ${escapeHtml(hazard.severity)}</p>
+        <p style="margin-bottom: 8px;">${escapeHtml(hazard.description)}</p>
+        <p style="font-size: 11px; color: #991b1b; font-weight: bold;">⚠️ THIS IS A DEMONSTRATION - NOT A REAL ALERT</p>
+      </div>
+    `;
+    
+    polygon.bindPopup(popupContent);
+    marker.bindPopup(popupContent);
+    
+    // Auto-open popup and fit map view
+    marker.openPopup();
+    map.fitBounds(polygon.getBounds(), { padding: [50, 50] });
+    
+    // Add demo alert to sidebar
+    const demoDiv = document.createElement('div');
+    demoDiv.className = 'feed';
+    demoDiv.style.border = '3px dashed #dc2626';
+    demoDiv.style.background = '#fef2f2';
+    demoDiv.innerHTML = `
+      <div class="alert-title" style="color: #dc2626;">
+        🚨 DEMO: ${escapeHtml(hazard.title)}
+      </div>
+      <div class="small">
+        📅 ${new Date().toLocaleString()} • 
+        📡 DEMO SYSTEM • 
+        ⚡ ${escapeHtml(hazard.urgency)}
+      </div>
+      <div class="description">
+        ${escapeHtml(hazard.description)}
+      </div>
+      <div class="small" style="color: #991b1b; font-weight: bold;">
+        ⚠️ THIS IS A DEMONSTRATION - NOT A REAL ALERT
+      </div>
+    `;
+    
+    // Insert at top of CAP feed section
+    const capFeed = document.getElementById('capFeed');
+    capFeed.insertBefore(demoDiv, capFeed.firstChild);
+    
+    // Update status
+    const statusEl = document.getElementById('status');
+    statusEl.textContent = `🚨 Demo ${hazard.type} alert activated - THIS IS NOT REAL`;
+    statusEl.className = 'status error';
+    statusEl.style.border = '2px dashed #dc2626';
+    
+    console.log('[v0] Demo hazard alert created:', hazard.type);
+    
+    // Auto-remove demo after 30 seconds
+    setTimeout(() => {
+      demoLayer.clearLayers();
+      demoDiv.remove();
+      statusEl.style.border = '';
+      console.log('[v0] Demo hazard alert cleared');
+    }, 30000);
+  }
+
+  // ========== INITIALIZATION ==========
+  document.getElementById('refreshBtn').addEventListener('click', refreshAll);
+  document.getElementById('demoBtn').addEventListener('click', createDemoHazard);
+  
+  // Initial load
+  refreshAll();
+  
+  console.log('[v0] India Ocean Hazard Monitor initialized');
+  </script>
+</body>
+</html>
