@@ -1,9 +1,11 @@
-#India Ocean Hazard Monitoring System
+India Ocean Hazard Monitoring System
+
 This project is a single-page web application designed to consolidate and visualize real-time hazard data for the Indian Ocean region from various official Indian government sources. It utilizes the Leaflet.js library for map display and relies heavily on CORS proxies to fetch data from live APIs and feeds.
 
 .............................................................................
 
-#Features
+Features
+
 Map Visualization: Displays hazard areas using Leaflet.js over dynamic map tiles (OpenStreetMap and Satellite).
 
 Dual-Pane Layout: A responsive interface with a map pane (60%) and a data/control sidebar (40%).
