@@ -1,4 +1,4 @@
-India Ocean Hazard Monitoring System
+India Ocean Hazard Checker
 
 This project is a single-page web application designed to consolidate and visualize real-time hazard data for the Indian Ocean region from various official Indian government sources. It utilizes the Leaflet.js library for map display and relies heavily on CORS proxies to fetch data from live APIs and feeds.
 
